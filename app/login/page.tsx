@@ -21,6 +21,8 @@ async function loginAction(formData: FormData) {
   }
 }
 
+export const dynamic = 'force-dynamic';
+
 export default async function LoginPage({ searchParams }: { searchParams: any }) {
   const params = await searchParams;
   const hasError = params?.error === '1';

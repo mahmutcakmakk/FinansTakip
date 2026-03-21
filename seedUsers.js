@@ -1,4 +1,5 @@
 const { Pool } = require('pg');
+
 const pool = new Pool({
   connectionString: process.env.POSTGRES_URL,
   ssl: { rejectUnauthorized: false }
@@ -6,14 +7,27 @@ const pool = new Pool({
 
 async function run() {
   try {
-    await pool.query("INSERT INTO profiles (name, username, password) VALUES ('Ortak Kasa (OyunTag)', 'ortak', '123456') ON CONFLICT DO NOTHING;");
-    await pool.query("INSERT INTO profiles (name, username, password) VALUES ('Mahmut Çakmak (MC)', 'mc', '123456') ON CONFLICT DO NOTHING;");
-    await pool.query("INSERT INTO profiles (name, username, password) VALUES ('Muhammet (MD)', 'md', '123456') ON CONFLICT DO NOTHING;");
-    console.log("3 Ana Kullanıcı Başarıyla PostgreSQL'e Eklendi!");
+    const check1 = await pool.query("SELECT * FROM profiles WHERE username = 'ortak'");
+    if (check1.rows.length === 0) {
+       await pool.query("INSERT INTO profiles (name, username, password) VALUES ('Ortak Kasa (OyunTag)', 'ortak', '123456')");
+    }
+
+    const check2 = await pool.query("SELECT * FROM profiles WHERE username = 'mc'");
+    if (check2.rows.length === 0) {
+       await pool.query("INSERT INTO profiles (name, username, password) VALUES ('Mahmut Çakmak (MC)', 'mc', '123456')");
+    }
+
+    const check3 = await pool.query("SELECT * FROM profiles WHERE username = 'md'");
+    if (check3.rows.length === 0) {
+       await pool.query("INSERT INTO profiles (name, username, password) VALUES ('Muhammet (MD)', 'md', '123456')");
+    }
+
+    const profiles = await pool.query("SELECT id, name, username FROM profiles");
+    console.log("Şu Anki Veritabanı Profilleri:", profiles.rows);
   } catch(e) {
-    console.error(e);
+    console.error("HATA:", e);
   } finally {
-    process.exit(0);
+    await pool.end();
   }
 }
 run();
