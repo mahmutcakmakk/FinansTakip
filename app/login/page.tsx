@@ -27,7 +27,14 @@ export default async function LoginPage({ searchParams }: { searchParams: any })
   const params = await searchParams;
   const hasError = params?.error === '1';
 
-  const profiles = await db.prepare('SELECT * FROM profiles ORDER BY id ASC').all() as any[];
+  let profiles: any[] = [];
+  let dbError = false;
+  try {
+    profiles = await db.prepare('SELECT * FROM profiles ORDER BY id ASC').all() as any[];
+    if (!profiles || profiles.length === 0) dbError = true;
+  } catch (e) {
+    dbError = true;
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
@@ -50,6 +57,12 @@ export default async function LoginPage({ searchParams }: { searchParams: any })
           {hasError && (
             <div className="mb-6 p-3 rounded-lg bg-[rgba(255,51,102,0.1)] border border-[rgba(255,51,102,0.3)] text-[var(--color-neon-red)] text-sm text-center font-medium">
               Geçersiz kullanıcı adı veya şifre!
+            </div>
+          )}
+
+          {dbError && (
+            <div className="mb-6 p-3 rounded-lg bg-[rgba(255,165,0,0.1)] border border-[rgba(255,165,0,0.8)] text-[#ffb03a] text-sm text-center font-medium">
+              ⚠️ Veritabanı bağlantısı Bulut Sunucusunda kurulamadı veya profiller çekilemedi. Bağlantı şifresi eksik olabilir!
             </div>
           )}
 

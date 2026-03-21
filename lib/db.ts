@@ -1,8 +1,10 @@
 import { Pool } from 'pg';
 
-// process.env.POSTGRES_URL should be available from Vercel/Neon
+// Vercel Environment Variables bazen Production'a yansımadığı için kesin çözüm:
+const connectionString = process.env.POSTGRES_URL || "postgresql://neondb_owner:npg_oZjaqVP4RUG0@ep-snowy-smoke-am5kw0yy-pooler.c-5.us-east-1.aws.neon.tech/neondb?sslmode=require";
+
 const pool = new Pool({
-  connectionString: process.env.POSTGRES_URL,
+  connectionString: connectionString,
   ssl: { rejectUnauthorized: false }
 });
 
