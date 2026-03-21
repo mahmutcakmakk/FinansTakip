@@ -25,6 +25,8 @@ export default async function LoginPage({ searchParams }: { searchParams: any })
   const params = await searchParams;
   const hasError = params?.error === '1';
 
+  const profiles = await db.prepare('SELECT * FROM profiles ORDER BY id ASC').all() as any[];
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="glass-card w-full max-w-md p-8 relative overflow-hidden">
@@ -53,9 +55,9 @@ export default async function LoginPage({ searchParams }: { searchParams: any })
             <div>
               <label className="block text-sm text-[#8e95a5] mb-2">Seçili Profil (Kullanıcı)</label>
               <select name="username" required className="glass-input w-full p-4 rounded-xl appearance-none font-bold text-lg bg-[#ffffff05]">
-                <option value="ortak">👥 Ortak Kasa (OyunTag)</option>
-                <option value="mc">👤 Mahmut Çakmak (MC)</option>
-                <option value="md">👤 Muhammet (MD)</option>
+                {profiles.map(p => (
+                  <option key={p.id} value={p.username}>👤 {p.name}</option>
+                ))}
               </select>
             </div>
             <div>
