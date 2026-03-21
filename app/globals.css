@@ -1,0 +1,102 @@
+@import "tailwindcss";
+
+@theme {
+  --color-neon-blue: #00f0ff;
+  --color-neon-purple: #8a2be2;
+  --color-neon-green: #00ff88;
+  --color-neon-red: #ff3366;
+  --color-bg-dark: #0f1115;
+  --color-card-bg: rgba(25, 28, 36, 0.65);
+}
+
+@layer base {
+  body {
+    background-color: var(--color-bg-dark);
+    color: #f0f2f5;
+    background-image: 
+      radial-gradient(circle at 15% 50%, rgba(0, 240, 255, 0.04), transparent 30%),
+      radial-gradient(circle at 85% 30%, rgba(138, 43, 226, 0.04), transparent 30%);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+}
+
+@layer utilities {
+  .glass-card {
+    background: var(--color-card-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+  }
+  
+  .glass-card:hover {
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+  
+  .text-neon-blue { color: var(--color-neon-blue); text-shadow: 0 0 10px rgba(0,240,255,0.4); }
+  .text-neon-purple { color: var(--color-neon-purple); text-shadow: 0 0 10px rgba(138,43,226,0.4); }
+  .text-neon-green { color: var(--color-neon-green); text-shadow: 0 0 10px rgba(0,255,136,0.3); }
+  .text-neon-red { color: var(--color-neon-red); text-shadow: 0 0 10px rgba(255,51,102,0.3); }
+
+  .btn-neon-blue {
+    background: linear-gradient(90deg, var(--color-neon-blue), var(--color-neon-purple));
+    color: white;
+    box-shadow: 0 4px 15px rgba(0, 240, 255, 0.3);
+    transition: all 0.3s;
+  }
+  .btn-neon-blue:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 240, 255, 0.5);
+  }
+
+  /* Form Inputs */
+  .glass-input {
+    background-color: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #f0f2f5;
+    transition: all 0.2s;
+  }
+  .glass-input:focus {
+    outline: none;
+    border-color: var(--color-neon-blue);
+    background-color: rgba(255, 255, 255, 0.05);
+    box-shadow: 0 0 0 4px rgba(0, 240, 255, 0.15);
+  }
+}
+
+/* Light Tema (Gündüz Modu) Özelleştirmeleri */
+.light {
+  --color-bg-dark: #f3f4f6;
+  --color-card-bg: rgba(255, 255, 255, 0.9);
+}
+
+.light body {
+  color: #111827;
+}
+
+/* Hardcoded hex Tailwind sınıflarını Light temada zorunlu ezme işlemi */
+.light .bg-\[\#090b14\], .light .bg-\[\#0a0d17\] { background-color: #ffffff !important; }
+.light .bg-\[\#ffffff05\], .light .bg-\[\#ffffff0a\], .light .bg-\[\#ffffff14\] { background-color: #f9fafb !important; }
+.light .border-\[\#ffffff14\], .light .border-\[\#ffffff0a\] { border-color: #e5e7eb !important; }
+.light .text-\[\#8e95a5\], .light .text-gray-400 { color: #6b7280 !important; }
+.light .text-white { color: #111827 !important; }
+
+/* Light Tema Glass Effect */
+.light .glass-card, 
+.light .glass-input {
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05) !important;
+  color: #111827 !important;
+}
+
+.light .glass-input {
+  background-color: #ffffff !important;
+  border-color: #e5e7eb !important;
+}
+
+.light .glass-input::placeholder {
+  color: #9ca3af !important;
+}
