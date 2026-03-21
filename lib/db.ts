@@ -12,8 +12,7 @@ const pool = new Pool({
 function convertSqliteToPostgres(sql: string) {
   let index = 1;
 
-  // 1. Replace ? with $1, $2 (Regex safely matching ?)
-  // This is a naive replacement but works for our simple parameterized queries
+  // 1. Replace ? with $1, $2
   let pgSql = sql.replace(/\?/g, () => `$${index++}`);
   
   // 2. Data Types
@@ -21,13 +20,17 @@ function convertSqliteToPostgres(sql: string) {
   pgSql = pgSql.replace(/DATETIME/gi, 'TIMESTAMP');
   pgSql = pgSql.replace(/REAL/gi, 'DECIMAL(10,2)');
   
-  // 3. Functions
-  // SQLite: strftime('%Y-%m', 'now') -> Postgres: TO_CHAR(NOW(), 'YYYY-MM')
+  // 3. PostgreSQL Date Operations & Casting Fixes
   pgSql = pgSql.replace(/strftime\('%Y-%m', 'now'\)/gi, "TO_CHAR(NOW(), 'YYYY-MM')");
   
-  // SQLite: date(?, '+7 day') -> Postgres: $1::date + interval '7 days'
-  // Actually, we can just replace standard text replacements here if we know the exact queries:
-  pgSql = pgSql.replace(/date\(\$1, '\+7 day'\)/gi, "$1::date + interval '7 days'");
+  // TIMESTAMP tipindeki 'date' kolonu LIKE ile kullanılamaz (örn: date LIKE '2023-10%'), metne çevrilmeli:
+  pgSql = pgSql.replace(/date LIKE/gi, 'date::text LIKE');
+  
+  // dueDate <= date($1, '+7 day') tarzı SQLite kurgularını Postgres formatına çevir:
+  pgSql = pgSql.replace(/date\(\$([0-9]+),\s*'\+7 day'\)/gi, "$$$1::date + interval '7 days'");
+
+  // date = ? tarzı eşitlikleri 'date::date =' yaparak zaman dilimini yoksay (sadece gün eşleştir):
+  pgSql = pgSql.replace(/date = \$/gi, 'date::date = $');
 
   return pgSql;
 }
