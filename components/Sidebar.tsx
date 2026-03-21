@@ -46,7 +46,7 @@ export default function Sidebar() {
           <h1 className="font-bold text-2xl tracking-wide">Finans<span className="text-[var(--color-neon-blue)]">Takip</span></h1>
         </div>
 
-        <nav className="mt-8 px-4 flex flex-col gap-2">
+        <nav className="mt-8 px-4 flex flex-col gap-2 overflow-y-auto h-[calc(100vh-120px)] pb-10 custom-scrollbar">
           {navLinks.map((link) => {
             const isActive = pathname === link.href;
             const Icon = link.icon;

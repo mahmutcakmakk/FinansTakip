@@ -84,9 +84,10 @@ export default function TutorialModal() {
 
   // Sistemi ilk kez açanlara otomatik gösterme (LocalStorage ile)
   useEffect(() => {
-    const isTutorialSeen = localStorage.getItem('tutorial_seen');
+    const isTutorialSeen = localStorage.getItem('tutorial_seen_v3');
     if (!isTutorialSeen) {
       setIsOpen(true);
+      localStorage.setItem('tutorial_seen_v3', 'true'); // Anında kaydet ki refresh atınca tekrar çıkmasın
     }
     
     // Uygulama genelinde 'open-tutorial' eventini dinleyelim (Sidebar butonundan tetiklemek için)

@@ -9,7 +9,7 @@ async function saveGeminiKey(formData: FormData) {
   const session = await getSession();
   if (!session) return;
   const apikey = formData.get('apikey') as string;
-  await db.prepare(`UPDATE profiles SET geminiApiKey = ? WHERE id = ?`).run(apikey, session.profileId);
+  await db.prepare(`UPDATE profiles SET geminiApiKey = ?`).run(apikey);
   revalidatePath('/ayarlar');
 }
 
