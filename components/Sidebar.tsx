@@ -40,13 +40,13 @@ export default function Sidebar() {
       </div>
 
       {/* Sidebar */}
-      <div className={`fixed top-0 left-0 h-full w-[260px] bg-[#0f1115]/95 backdrop-blur-xl border-r border-[#ffffff14] z-40 transition-transform duration-300 md:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <div className={`fixed top-0 left-0 h-full w-[260px] bg-white/95 dark:bg-[#0f1115]/95 backdrop-blur-xl border-r border-[#e5e7eb] dark:border-[#ffffff14] z-40 transition-transform duration-300 md:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="p-8 hidden md:flex items-center justify-center gap-3">
           <Wallet className="text-[var(--color-neon-blue)] w-8 h-8" />
-          <h1 className="font-bold text-2xl tracking-wide">Finans<span className="text-[var(--color-neon-blue)]">Takip</span></h1>
+          <h1 className="font-bold text-2xl tracking-wide text-gray-900 dark:text-white">Finans<span className="text-[var(--color-neon-blue)]">Takip</span></h1>
         </div>
 
-        <nav className="mt-8 px-4 flex flex-col gap-2 overflow-y-auto h-[calc(100vh-120px)] pb-10 custom-scrollbar">
+        <nav className="mt-20 md:mt-8 px-4 flex flex-col gap-2 overflow-y-auto h-[calc(100vh-120px)] pb-10 custom-scrollbar">
           {navLinks.map((link) => {
             const isActive = pathname === link.href;
             const Icon = link.icon;

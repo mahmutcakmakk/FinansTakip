@@ -14,10 +14,10 @@ export default function ThemeToggle() {
   return (
     <button
       onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-      className="flex items-center gap-3 p-3 w-full rounded-xl transition-colors hover:bg-[#ffffff14] text-[#8e95a5] hover:text-white"
+      className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-[#8e95a5] hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#ffffff0d] border border-transparent"
     >
       {theme === 'dark' ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5 text-purple-500" />}
-      <span className="font-medium">{theme === 'dark' ? 'Gündüz Modu' : 'Karanlık Mod'}</span>
+      <span>{theme === 'dark' ? 'Gündüz Modu' : 'Karanlık Mod'}</span>
     </button>
   );
 }
