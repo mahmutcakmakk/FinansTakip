@@ -15,7 +15,7 @@ export async function processAiEntry(formData: FormData) {
 
   try {
     // Profilin API anahtarını alıyoruz
-    const profile = db.prepare(`SELECT geminiApiKey FROM profiles WHERE id = ?`).get(session.profileId) as any;
+    const profile = await db.prepare(`SELECT geminiApiKey FROM profiles WHERE id = ?`).get(session.profileId) as any;
     
     if (!profile || !profile.geminiApiKey) {
       return { error: "Ayarlar sayfasından lütfen Gemini API anahtarınızı (Token) kaydedin." };
@@ -25,9 +25,9 @@ export async function processAiEntry(formData: FormData) {
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     // Veritabanındaki cüzdanları ve kategorileri çekip yapay zekaya öğretelim
-    const wallets = db.prepare(`SELECT id, name FROM wallets WHERE profileId = ?`).all(session.profileId) as any[];
-    const categories = db.prepare(`SELECT id, name, type FROM categories WHERE profileId = ?`).all(session.profileId) as any[];
-    const customers = db.prepare(`SELECT id, name FROM customers WHERE profileId = ?`).all(session.profileId) as any[];
+    const wallets = await db.prepare(`SELECT id, name FROM wallets WHERE profileId = ?`).all(session.profileId) as any[];
+    const categories = await db.prepare(`SELECT id, name, type FROM categories WHERE profileId = ?`).all(session.profileId) as any[];
+    const customers = await db.prepare(`SELECT id, name FROM customers WHERE profileId = ?`).all(session.profileId) as any[];
 
     const todayDate = format(new Date(), 'yyyy-MM-dd HH:mm:ss');
 
@@ -86,7 +86,7 @@ export async function processAiEntry(formData: FormData) {
       const generatedDescription = (trx.description || "Yapay Zeka İşlemi") + " 🤖";
       
       if (trx.type === 'TRANSFER') {
-        db.prepare(`
+        await db.prepare(`
           INSERT INTO transfers (profileId, fromWalletId, toWalletId, amount, date, description) 
           VALUES (?, ?, ?, ?, ?, ?)
         `).run(
@@ -98,11 +98,11 @@ export async function processAiEntry(formData: FormData) {
           generatedDescription
         );
         // Cüzdan Bakiyeleri Güncellemesi
-        db.prepare("UPDATE wallets SET balance = balance - ? WHERE id = ?").run(trx.amount, trx.fromWalletId);
-        db.prepare("UPDATE wallets SET balance = balance + ? WHERE id = ?").run(trx.amount, trx.toWalletId);
+        await db.prepare("UPDATE wallets SET balance = balance - ? WHERE id = ?").run(trx.amount, trx.fromWalletId);
+        await db.prepare("UPDATE wallets SET balance = balance + ? WHERE id = ?").run(trx.amount, trx.toWalletId);
         
       } else if (trx.type === 'INCOME' || trx.type === 'EXPENSE') {
-        db.prepare(`
+        await db.prepare(`
           INSERT INTO transactions (profileId, walletId, categoryId, customerId, type, amount, date, description) 
           VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         `).run(
@@ -119,9 +119,9 @@ export async function processAiEntry(formData: FormData) {
         // Cüzdan Güncellemesi
         if (trx.walletId) {
           if (trx.type === 'INCOME') {
-            db.prepare("UPDATE wallets SET balance = balance + ? WHERE id = ?").run(trx.amount, trx.walletId);
+            await db.prepare("UPDATE wallets SET balance = balance + ? WHERE id = ?").run(trx.amount, trx.walletId);
           } else {
-            db.prepare("UPDATE wallets SET balance = balance - ? WHERE id = ?").run(trx.amount, trx.walletId);
+            await db.prepare("UPDATE wallets SET balance = balance - ? WHERE id = ?").run(trx.amount, trx.walletId);
           }
         }
       }

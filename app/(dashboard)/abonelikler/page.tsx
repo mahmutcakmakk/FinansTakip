@@ -13,7 +13,7 @@ async function addSubscription(formData: FormData) {
   const dueDay = parseInt(formData.get('dueDay') as string);
 
   if (name && amount && dueDay) {
-    db.prepare(`INSERT INTO subscriptions (name, amount, dueDay, profileId) VALUES (?, ?, ?, ?)`).run(name, amount, dueDay, session.profileId);
+    await db.prepare(`INSERT INTO subscriptions (name, amount, dueDay, profileId) VALUES (?, ?, ?, ?)`).run(name, amount, dueDay, session.profileId);
     revalidatePath('/abonelikler');
   }
 }
@@ -24,7 +24,7 @@ async function deleteSubscription(formData: FormData) {
   if (!session) return;
 
   const id = formData.get('id');
-  db.prepare(`DELETE FROM subscriptions WHERE id = ? AND profileId = ?`).run(id, session.profileId);
+  await db.prepare(`DELETE FROM subscriptions WHERE id = ? AND profileId = ?`).run(id, session.profileId);
   revalidatePath('/abonelikler');
 }
 
@@ -32,7 +32,7 @@ export default async function AboneliklerPage() {
   const session = await getSession();
   if (!session) return null;
 
-  const subscriptions = db.prepare(`SELECT * FROM subscriptions WHERE profileId = ? ORDER BY dueDay ASC`).all(session.profileId) as any[];
+  const subscriptions = await db.prepare(`SELECT * FROM subscriptions WHERE profileId = ? ORDER BY dueDay ASC`).all(session.profileId) as any[];
 
   const formatMoney = (val: number) => new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(val);
   const totalMonthly = subscriptions.reduce((acc, sub) => acc + sub.amount, 0);

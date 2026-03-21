@@ -14,7 +14,7 @@ async function addWallet(formData: FormData) {
   const initialBalance = parseFloat(formData.get('initialBalance') as string) || 0;
 
   if (name && type) {
-    db.prepare(`INSERT INTO wallets (name, type, balance, profileId) VALUES (?, ?, ?, ?)`).run(name, type, initialBalance, session.profileId);
+    await db.prepare(`INSERT INTO wallets (name, type, balance, profileId) VALUES (?, ?, ?, ?)`).run(name, type, initialBalance, session.profileId);
     revalidatePath('/cuzdanlar');
   }
 }
@@ -25,10 +25,10 @@ async function deleteWallet(formData: FormData) {
   if (!session) return;
 
   const id = formData.get('id');
-  db.prepare(`UPDATE transactions SET walletId = NULL WHERE walletId = ? AND profileId = ?`).run(id, session.profileId);
-  db.prepare(`UPDATE transfers SET fromWalletId = 0 WHERE fromWalletId = ? AND profileId = ?`).run(id, session.profileId);
-  db.prepare(`UPDATE transfers SET toWalletId = 0 WHERE toWalletId = ? AND profileId = ?`).run(id, session.profileId);
-  db.prepare(`DELETE FROM wallets WHERE id = ? AND profileId = ?`).run(id, session.profileId);
+  await db.prepare(`UPDATE transactions SET walletId = NULL WHERE walletId = ? AND profileId = ?`).run(id, session.profileId);
+  await db.prepare(`UPDATE transfers SET fromWalletId = 0 WHERE fromWalletId = ? AND profileId = ?`).run(id, session.profileId);
+  await db.prepare(`UPDATE transfers SET toWalletId = 0 WHERE toWalletId = ? AND profileId = ?`).run(id, session.profileId);
+  await db.prepare(`DELETE FROM wallets WHERE id = ? AND profileId = ?`).run(id, session.profileId);
   revalidatePath('/cuzdanlar');
 }
 
@@ -44,10 +44,10 @@ async function transferMoney(formData: FormData) {
   const description = formData.get('description') as string;
 
   if (fromWalletId && toWalletId && amount > 0 && fromWalletId !== toWalletId) {
-    db.prepare(`UPDATE wallets SET balance = balance - ? WHERE id = ? AND profileId = ?`).run(amount, fromWalletId, session.profileId);
-    db.prepare(`UPDATE wallets SET balance = balance + ? WHERE id = ? AND profileId = ?`).run(amount, toWalletId, session.profileId);
+    await db.prepare(`UPDATE wallets SET balance = balance - ? WHERE id = ? AND profileId = ?`).run(amount, fromWalletId, session.profileId);
+    await db.prepare(`UPDATE wallets SET balance = balance + ? WHERE id = ? AND profileId = ?`).run(amount, toWalletId, session.profileId);
     
-    db.prepare(`INSERT INTO transfers (profileId, fromWalletId, toWalletId, amount, date, description) VALUES (?, ?, ?, ?, ?, ?)`).run(session.profileId, fromWalletId, toWalletId, amount, date, description);
+    await db.prepare(`INSERT INTO transfers (profileId, fromWalletId, toWalletId, amount, date, description) VALUES (?, ?, ?, ?, ?, ?)`).run(session.profileId, fromWalletId, toWalletId, amount, date, description);
     
     revalidatePath('/cuzdanlar');
     revalidatePath('/'); // Dashboard'a da yansıyabilir
@@ -58,9 +58,9 @@ export default async function CuzdanlarPage() {
   const session = await getSession();
   if (!session) return null;
 
-  const wallets = db.prepare(`SELECT * FROM wallets WHERE profileId = ? ORDER BY id DESC`).all(session.profileId) as any[];
+  const wallets = await db.prepare(`SELECT * FROM wallets WHERE profileId = ? ORDER BY id DESC`).all(session.profileId) as any[];
   
-  const transfers = db.prepare(`
+  const transfers = await db.prepare(`
     SELECT t.*, 
            w1.name as fromName, 
            w2.name as toName 

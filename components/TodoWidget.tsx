@@ -9,7 +9,7 @@ async function addTodo(formData: FormData) {
   if (!session) return;
   const text = formData.get('text') as string;
   if (text) {
-    db.prepare('INSERT INTO todos (text, isCompleted, profileId) VALUES (?, 0, ?)').run(text, session.profileId);
+    await db.prepare('INSERT INTO todos (text, isCompleted, profileId) VALUES (?, 0, ?)').run(text, session.profileId);
     revalidatePath('/');
   }
 }
@@ -20,7 +20,7 @@ async function toggleTodo(formData: FormData) {
   if (!session) return;
   const id = formData.get('id');
   const currentState = parseInt(formData.get('currentState') as string);
-  db.prepare('UPDATE todos SET isCompleted = ? WHERE id = ? AND profileId = ?').run(currentState === 1 ? 0 : 1, id, session.profileId);
+  await db.prepare('UPDATE todos SET isCompleted = ? WHERE id = ? AND profileId = ?').run(currentState === 1 ? 0 : 1, id, session.profileId);
   revalidatePath('/');
 }
 
@@ -29,7 +29,7 @@ async function deleteTodo(formData: FormData) {
   const session = await getSession();
   if (!session) return;
   const id = formData.get('id');
-  db.prepare('DELETE FROM todos WHERE id = ? AND profileId = ?').run(id, session.profileId);
+  await db.prepare('DELETE FROM todos WHERE id = ? AND profileId = ?').run(id, session.profileId);
   revalidatePath('/');
 }
 

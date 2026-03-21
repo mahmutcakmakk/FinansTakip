@@ -15,7 +15,7 @@ async function addIncome(formData: FormData) {
   const description = formData.get('description') as string;
 
   if (amount && categoryId && date) {
-    db.prepare(`INSERT INTO transactions (type, amount, categoryId, description, date, profileId) VALUES ('INCOME', ?, ?, ?, ?, ?)`).run(amount, categoryId, description, date, session.profileId);
+    await db.prepare(`INSERT INTO transactions (type, amount, categoryId, description, date, profileId) VALUES ('INCOME', ?, ?, ?, ?, ?)`).run(amount, categoryId, description, date, session.profileId);
     revalidatePath('/gelirler');
     revalidatePath('/');
   }
@@ -27,7 +27,7 @@ async function deleteIncome(formData: FormData) {
   if (!session) return;
 
   const id = formData.get('id');
-  db.prepare(`DELETE FROM transactions WHERE id = ? AND type = 'INCOME' AND profileId = ?`).run(id, session.profileId);
+  await db.prepare(`DELETE FROM transactions WHERE id = ? AND type = 'INCOME' AND profileId = ?`).run(id, session.profileId);
   revalidatePath('/gelirler');
   revalidatePath('/');
 }
@@ -40,7 +40,7 @@ export default async function GelirlerPage({ searchParams }: { searchParams: any
   const currentMonth = format(new Date(), 'yyyy-MM');
   const monthFilter = params?.month || currentMonth;
   
-  const categories = db.prepare(`SELECT * FROM categories WHERE type = 'INCOME' AND profileId = ?`).all(session.profileId) as any[];
+  const categories = await db.prepare(`SELECT * FROM categories WHERE type = 'INCOME' AND profileId = ?`).all(session.profileId) as any[];
   
   let query = `
     SELECT t.*, c.name as categoryName 
@@ -57,7 +57,7 @@ export default async function GelirlerPage({ searchParams }: { searchParams: any
   
   query += ` ORDER BY t.date DESC, t.id DESC`;
   
-  const incomes = db.prepare(query).all(...queryParams) as any[];
+  const incomes = await db.prepare(query).all(...queryParams) as any[];
 
   const formatMoney = (val: number) => new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(val);
 

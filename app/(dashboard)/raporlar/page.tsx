@@ -14,14 +14,14 @@ export default async function RaporlarPage({ searchParams }: { searchParams: { s
   const startDate = searchParams.start || thisMonthStart;
   const endDate = searchParams.end || today;
 
-  const incomeQuery = db.prepare(`SELECT SUM(amount) as total FROM transactions WHERE type = 'INCOME' AND date >= ? AND date <= ? AND profileId = ?`).get(startDate, endDate, session.profileId) as {total: number|null};
-  const expenseQuery = db.prepare(`SELECT SUM(amount) as total FROM transactions WHERE type = 'EXPENSE' AND date >= ? AND date <= ? AND profileId = ?`).get(startDate, endDate, session.profileId) as {total: number|null};
+  const incomeQuery = await db.prepare(`SELECT SUM(amount) as total FROM transactions WHERE type = 'INCOME' AND date >= ? AND date <= ? AND profileId = ?`).get(startDate, endDate, session.profileId) as {total: number|null};
+  const expenseQuery = await db.prepare(`SELECT SUM(amount) as total FROM transactions WHERE type = 'EXPENSE' AND date >= ? AND date <= ? AND profileId = ?`).get(startDate, endDate, session.profileId) as {total: number|null};
 
   const income = incomeQuery.total || 0;
   const expense = expenseQuery.total || 0;
   const netProfit = income - expense;
 
-  const categoryExpenses = db.prepare(`
+  const categoryExpenses = await db.prepare(`
     SELECT c.name as name, SUM(t.amount) as value 
     FROM transactions t 
     JOIN categories c ON t.categoryId = c.id 

@@ -14,7 +14,7 @@ export async function addKanbanTask(formData: FormData) {
 
   if (!title) return;
 
-  db.prepare('INSERT INTO kanban_tasks (profileId, title, description, status) VALUES (?, ?, ?, ?)').run(session.profileId, title, description, status);
+  await db.prepare('INSERT INTO kanban_tasks (profileId, title, description, status) VALUES (?, ?, ?, ?)').run(session.profileId, title, description, status);
 
   revalidatePath('/projeler');
 }
@@ -23,7 +23,7 @@ export async function updateKanbanTaskStatus(id: number, newStatus: string) {
   const session = await getSession();
   if(!session) return;
 
-  db.prepare('UPDATE kanban_tasks SET status = ? WHERE id = ? AND profileId = ?').run(newStatus, id, session.profileId);
+  await db.prepare('UPDATE kanban_tasks SET status = ? WHERE id = ? AND profileId = ?').run(newStatus, id, session.profileId);
     
   revalidatePath('/projeler');
 }
@@ -32,7 +32,7 @@ export async function deleteKanbanTask(id: number) {
   const session = await getSession();
   if(!session) return;
 
-  db.prepare('DELETE FROM kanban_tasks WHERE id = ? AND profileId = ?').run(id, session.profileId);
+  await db.prepare('DELETE FROM kanban_tasks WHERE id = ? AND profileId = ?').run(id, session.profileId);
 
   revalidatePath('/projeler');
 }

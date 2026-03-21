@@ -20,19 +20,16 @@ async function addDebt(formData: FormData) {
   if (type && personName && amount && rawDueDate) {
     if (installmentsCount > 1) {
       const installmentAmount = amount / installmentsCount;
-      const insertStmt = db.prepare(`INSERT INTO debts (type, personName, amount, dueDate, description, profileId, installments) VALUES (?, ?, ?, ?, ?, ?, ?)`);
+      const insertStmt = await db.prepare(`INSERT INTO debts (type, personName, amount, dueDate, description, profileId, installments) VALUES (?, ?, ?, ?, ?, ?, ?)`);
       
-      const insertMany = db.transaction(() => {
-         for (let i = 1; i <= installmentsCount; i++) {
-            let iterDate = new Date(rawDueDate);
-            iterDate.setMonth(iterDate.getMonth() + (i - 1));
-            
-            const formattedDate = iterDate.toISOString().split('T')[0];
-            const iterDesc = (description ? description + ' - ' : '') + `Taksit ${i}/${installmentsCount}`;
-            insertStmt.run(type, personName, installmentAmount, formattedDate, iterDesc, session.profileId, installmentsCount);
-         }
-      });
-      insertMany();
+      for (let i = 1; i <= installmentsCount; i++) {
+          let iterDate = new Date(rawDueDate);
+          iterDate.setMonth(iterDate.getMonth() + (i - 1));
+          
+          const formattedDate = iterDate.toISOString().split('T')[0];
+          const iterDesc = (description ? description + ' - ' : '') + `Taksit ${i}/${installmentsCount}`;
+          await insertStmt.run(type, personName, installmentAmount, formattedDate, iterDesc, session.profileId, installmentsCount);
+      }
     } else {
       db.prepare(`INSERT INTO debts (type, personName, amount, dueDate, description, profileId) VALUES (?, ?, ?, ?, ?, ?)`).run(type, personName, amount, rawDueDate, description, session.profileId);
     }
@@ -47,7 +44,7 @@ async function markAsPaid(formData: FormData) {
   if (!session) return;
 
   const id = formData.get('id');
-  db.prepare(`UPDATE debts SET status = 'PAID', paidAmount = amount WHERE id = ? AND profileId = ?`).run(id, session.profileId);
+  await db.prepare(`UPDATE debts SET status = 'PAID', paidAmount = amount WHERE id = ? AND profileId = ?`).run(id, session.profileId);
   revalidatePath('/borclar');
   revalidatePath('/');
 }
@@ -62,7 +59,7 @@ async function payDebtPartially(formData: FormData) {
   
   if (!payAmount || payAmount <= 0) return;
 
-  const debt = db.prepare(`SELECT * FROM debts WHERE id = ? AND profileId = ?`).get(id, session.profileId) as any;
+  const debt = await db.prepare(`SELECT * FROM debts WHERE id = ? AND profileId = ?`).get(id, session.profileId) as any;
   if (!debt) return;
   
   const newPaidAmount = (debt.paidAmount || 0) + payAmount;
@@ -72,7 +69,7 @@ async function payDebtPartially(formData: FormData) {
      newStatus = 'PAID';
   }
   
-  db.prepare(`UPDATE debts SET paidAmount = ?, status = ? WHERE id = ? AND profileId = ?`).run(newPaidAmount, newStatus, id, session.profileId);
+  await db.prepare(`UPDATE debts SET paidAmount = ?, status = ? WHERE id = ? AND profileId = ?`).run(newPaidAmount, newStatus, id, session.profileId);
   revalidatePath('/borclar');
   revalidatePath('/');
 }
@@ -83,7 +80,7 @@ async function deleteDebt(formData: FormData) {
   if (!session) return;
 
   const id = formData.get('id');
-  db.prepare(`DELETE FROM debts WHERE id = ? AND profileId = ?`).run(id, session.profileId);
+  await db.prepare(`DELETE FROM debts WHERE id = ? AND profileId = ?`).run(id, session.profileId);
   revalidatePath('/borclar');
   revalidatePath('/');
 }
@@ -92,7 +89,7 @@ export default async function BorclarPage() {
   const session = await getSession();
   if (!session) return null;
 
-  const debts = db.prepare(`SELECT * FROM debts WHERE profileId = ? ORDER BY status DESC, dueDate ASC`).all(session.profileId) as any[];
+  const debts = await db.prepare(`SELECT * FROM debts WHERE profileId = ? ORDER BY status DESC, dueDate ASC`).all(session.profileId) as any[];
 
   const formatMoney = (val: number) => new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(val);
 

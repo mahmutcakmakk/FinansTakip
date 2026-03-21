@@ -11,7 +11,7 @@ async function loginAction(formData: FormData) {
 
   if (!username || !password) return;
 
-  const user = db.prepare('SELECT * FROM profiles WHERE username = ? AND password = ?').get(username, password) as any;
+  const user = await db.prepare('SELECT * FROM profiles WHERE username = ? AND password = ?').get(username, password) as any;
 
   if (user) {
     await createSession(user.id, user.username, user.name);

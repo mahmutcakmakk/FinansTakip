@@ -16,14 +16,14 @@ async function getDashboardData(profileId: number) {
   const today = format(new Date(), 'yyyy-MM-dd');
   const thisMonth = format(new Date(), 'yyyy-MM');
 
-  const todayIncome = db.prepare(`SELECT SUM(amount) as total FROM transactions WHERE type = 'INCOME' AND date = ? AND profileId = ?`).get(today, profileId) as {total: number|null};
-  const todayExpense = db.prepare(`SELECT SUM(amount) as total FROM transactions WHERE type = 'EXPENSE' AND date = ? AND profileId = ?`).get(today, profileId) as {total: number|null};
-  const monthIncome = db.prepare(`SELECT SUM(amount) as total FROM transactions WHERE type = 'INCOME' AND date LIKE ? AND profileId = ?`).get(`${thisMonth}%`, profileId) as {total: number|null};
-  const monthExpense = db.prepare(`SELECT SUM(amount) as total FROM transactions WHERE type = 'EXPENSE' AND date LIKE ? AND profileId = ?`).get(`${thisMonth}%`, profileId) as {total: number|null};
+  const todayIncome = await db.prepare(`SELECT SUM(amount) as total FROM transactions WHERE type = 'INCOME' AND date = ? AND profileId = ?`).get(today, profileId) as {total: number|null};
+  const todayExpense = await db.prepare(`SELECT SUM(amount) as total FROM transactions WHERE type = 'EXPENSE' AND date = ? AND profileId = ?`).get(today, profileId) as {total: number|null};
+  const monthIncome = await db.prepare(`SELECT SUM(amount) as total FROM transactions WHERE type = 'INCOME' AND date LIKE ? AND profileId = ?`).get(`${thisMonth}%`, profileId) as {total: number|null};
+  const monthExpense = await db.prepare(`SELECT SUM(amount) as total FROM transactions WHERE type = 'EXPENSE' AND date LIKE ? AND profileId = ?`).get(`${thisMonth}%`, profileId) as {total: number|null};
   
-  const upcomingDebts = db.prepare(`SELECT * FROM debts WHERE status = 'UNPAID' AND dueDate <= date(?, '+7 day') AND profileId = ? ORDER BY dueDate ASC LIMIT 5`).all(today, profileId) as any[];
+  const upcomingDebts = await db.prepare(`SELECT * FROM debts WHERE status = 'UNPAID' AND dueDate <= date(?, '+7 day') AND profileId = ? ORDER BY dueDate ASC LIMIT 5`).all(today, profileId) as any[];
   
-  const recentTransactions = db.prepare(`
+  const recentTransactions = await db.prepare(`
     SELECT t.*, c.name as categoryName 
     FROM transactions t 
     LEFT JOIN categories c ON t.categoryId = c.id 
@@ -31,10 +31,10 @@ async function getDashboardData(profileId: number) {
     ORDER BY t.date DESC, t.id DESC LIMIT 5
   `).all(profileId) as any[];
 
-  const todos = db.prepare('SELECT * FROM todos WHERE profileId = ? ORDER BY isCompleted ASC, id DESC LIMIT 20').all(profileId) as any[];
+  const todos = await db.prepare('SELECT * FROM todos WHERE profileId = ? ORDER BY isCompleted ASC, id DESC LIMIT 20').all(profileId) as any[];
 
   // Grafik için günlük özet verisi (Bu Ay)
-  const chartTransactions = db.prepare(`SELECT type, amount, date FROM transactions WHERE date LIKE ? AND profileId = ? ORDER BY date ASC`).all(`${thisMonth}%`, profileId) as any[];
+  const chartTransactions = await db.prepare(`SELECT type, amount, date FROM transactions WHERE date LIKE ? AND profileId = ? ORDER BY date ASC`).all(`${thisMonth}%`, profileId) as any[];
   
   const groupedChartData: Record<string, {date: string, income: number, expense: number}> = {};
   chartTransactions.forEach(t => {
@@ -49,7 +49,7 @@ async function getDashboardData(profileId: number) {
   const chartDataArray = Object.values(groupedChartData);
 
   // Pasta Grafik için Kategorilere Göre Gider Dağılımı
-  const categoryExpenses = db.prepare(`
+  const categoryExpenses = await db.prepare(`
     SELECT c.name as name, SUM(t.amount) as value 
     FROM transactions t 
     JOIN categories c ON t.categoryId = c.id 
@@ -59,10 +59,10 @@ async function getDashboardData(profileId: number) {
   `).all(`${thisMonth}%`, profileId) as any[];
 
   // Bütçeler ve Harcama İlerlemesi
-  const budgets = db.prepare(`SELECT b.*, c.name as categoryName FROM budgets b JOIN categories c ON b.categoryId = c.id WHERE b.profileId = ? AND b.month = ?`).all(profileId, thisMonth) as any[];
+  const budgets = await db.prepare(`SELECT b.*, c.name as categoryName FROM budgets b JOIN categories c ON b.categoryId = c.id WHERE b.profileId = ? AND b.month = ?`).all(profileId, thisMonth) as any[];
 
-  const budgetProgress = budgets.map(b => {
-    const spent = db.prepare(`SELECT SUM(amount) as total FROM transactions WHERE categoryId = ? AND profileId = ? AND date LIKE ?`).get(b.categoryId, profileId, `${thisMonth}%`) as {total: number|null};
+  const budgetProgress = await Promise.all(budgets.map(async (b: any) => {
+    const spent = await db.prepare(`SELECT SUM(amount) as total FROM transactions WHERE categoryId = ? AND profileId = ? AND date LIKE ?`).get(b.categoryId, profileId, `${thisMonth}%`) as {total: number|null};
     const totalSpent = spent.total || 0;
     const isExceeded = totalSpent > b.amountLimit;
     return {
@@ -71,11 +71,11 @@ async function getDashboardData(profileId: number) {
       percentage: Math.min(100, Math.round((totalSpent / b.amountLimit) * 100)),
       isExceeded
     };
-  });
+  }));
 
   // Yapay Zeka Hızlı Giriş Günlük Kullanım Limit Sayacı (1500 limit için referans)
-  const aiTransactions = db.prepare(`SELECT COUNT(*) as total FROM transactions WHERE profileId = ? AND date LIKE ? AND (description LIKE '%🤖%' OR description LIKE '%Yapay Zeka%')`).get(profileId, `${today}%`) as {total: number};
-  const aiTransfers = db.prepare(`SELECT COUNT(*) as total FROM transfers WHERE profileId = ? AND date LIKE ? AND (description LIKE '%🤖%' OR description LIKE '%Yapay Zeka%')`).get(profileId, `${today}%`) as {total: number};
+  const aiTransactions = await db.prepare(`SELECT COUNT(*) as total FROM transactions WHERE profileId = ? AND date LIKE ? AND (description LIKE '%🤖%' OR description LIKE '%Yapay Zeka%')`).get(profileId, `${today}%`) as {total: number};
+  const aiTransfers = await db.prepare(`SELECT COUNT(*) as total FROM transfers WHERE profileId = ? AND date LIKE ? AND (description LIKE '%🤖%' OR description LIKE '%Yapay Zeka%')`).get(profileId, `${today}%`) as {total: number};
   
   const aiUsageToday = (aiTransactions.total || 0) + (aiTransfers.total || 0);
 

@@ -8,7 +8,7 @@ export default async function ProjelerPage() {
   if (!session) return null;
 
   // Tüm taskleri çekip Componente yolluyoruz
-  const tasks = db.prepare('SELECT * FROM kanban_tasks WHERE profileId = ? ORDER BY id DESC').all(session.profileId) as any[];
+  const tasks = await db.prepare('SELECT * FROM kanban_tasks WHERE profileId = ? ORDER BY id DESC').all(session.profileId) as any[];
 
   return (
     <div className="space-y-6 pt-16 md:pt-0 pb-12">

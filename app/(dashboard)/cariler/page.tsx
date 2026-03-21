@@ -15,7 +15,7 @@ async function addCustomer(formData: FormData) {
   const notes = formData.get('notes') as string;
 
   if (name) {
-    db.prepare(`INSERT INTO customers (name, phone, address, notes, profileId) VALUES (?, ?, ?, ?, ?)`).run(name, phone, address, notes, session.profileId);
+    await db.prepare(`INSERT INTO customers (name, phone, address, notes, profileId) VALUES (?, ?, ?, ?, ?)`).run(name, phone, address, notes, session.profileId);
     revalidatePath('/cariler');
   }
 }
@@ -26,7 +26,7 @@ async function deleteCustomer(formData: FormData) {
   if (!session) return;
 
   const id = formData.get('id');
-  db.prepare(`DELETE FROM customers WHERE id = ? AND profileId = ?`).run(id, session.profileId);
+  await db.prepare(`DELETE FROM customers WHERE id = ? AND profileId = ?`).run(id, session.profileId);
   revalidatePath('/cariler');
 }
 
@@ -34,7 +34,7 @@ export default async function CarilerPage() {
   const session = await getSession();
   if (!session) return null;
 
-  const customers = db.prepare(`SELECT * FROM customers WHERE profileId = ? ORDER BY id DESC`).all(session.profileId) as any[];
+  const customers = await db.prepare(`SELECT * FROM customers WHERE profileId = ? ORDER BY id DESC`).all(session.profileId) as any[];
 
   return (
     <div className="space-y-6 pt-16 md:pt-0 pb-12">

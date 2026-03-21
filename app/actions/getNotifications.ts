@@ -14,7 +14,7 @@ export async function getNotifications() {
   const threeDaysLater = format(addDays(todayDate, 3), 'yyyy-MM-dd');
   const todayStr = format(todayDate, 'yyyy-MM-dd');
 
-  const upcomingDebts = db.prepare(`
+  const upcomingDebts = await db.prepare(`
     SELECT * FROM debts 
     WHERE status = 'UNPAID' 
     AND dueDate >= ? AND dueDate <= ? 
@@ -37,7 +37,7 @@ export async function getNotifications() {
   const daysInMonth = getDaysInMonth(todayDate);
   const currentMonthStr = format(todayDate, 'yyyy-MM');
   
-  const subscriptions = db.prepare(`SELECT * FROM subscriptions WHERE profileId = ?`).all(session.profileId) as any[];
+  const subscriptions = await db.prepare(`SELECT * FROM subscriptions WHERE profileId = ?`).all(session.profileId) as any[];
   
   subscriptions.forEach(sub => {
     // Eğer bu ay için zaten ödeme yapıldıysa/onaylandıysa bir daha gösterme

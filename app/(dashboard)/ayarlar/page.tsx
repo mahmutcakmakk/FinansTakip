@@ -9,7 +9,7 @@ async function saveGeminiKey(formData: FormData) {
   const session = await getSession();
   if (!session) return;
   const apikey = formData.get('apikey') as string;
-  db.prepare(`UPDATE profiles SET geminiApiKey = ? WHERE id = ?`).run(apikey, session.profileId);
+  await db.prepare(`UPDATE profiles SET geminiApiKey = ? WHERE id = ?`).run(apikey, session.profileId);
   revalidatePath('/ayarlar');
 }
 
@@ -22,7 +22,7 @@ async function addCategory(formData: FormData) {
   const type = formData.get('type') as string;
 
   if (name && type) {
-    db.prepare(`INSERT INTO categories (name, type, profileId) VALUES (?, ?, ?)`).run(name, type, session.profileId);
+    await db.prepare(`INSERT INTO categories (name, type, profileId) VALUES (?, ?, ?)`).run(name, type, session.profileId);
     revalidatePath('/ayarlar');
   }
 }
@@ -34,9 +34,9 @@ async function deleteCategory(formData: FormData) {
 
   const id = formData.get('id');
   try {
-    db.prepare(`UPDATE transactions SET categoryId = NULL WHERE categoryId = ? AND profileId = ?`).run(id, session.profileId);
-    db.prepare(`DELETE FROM budgets WHERE categoryId = ? AND profileId = ?`).run(id, session.profileId);
-    db.prepare(`DELETE FROM categories WHERE id = ? AND profileId = ?`).run(id, session.profileId);
+    await db.prepare(`UPDATE transactions SET categoryId = NULL WHERE categoryId = ? AND profileId = ?`).run(id, session.profileId);
+    await db.prepare(`DELETE FROM budgets WHERE categoryId = ? AND profileId = ?`).run(id, session.profileId);
+    await db.prepare(`DELETE FROM categories WHERE id = ? AND profileId = ?`).run(id, session.profileId);
     revalidatePath('/ayarlar');
   } catch (error) {
     console.error(error);
@@ -54,12 +54,12 @@ async function setBudget(formData: FormData) {
 
   if (categoryId && amountLimit > 0 && month) {
     // Aynı ay ve kategoriye ait kayıt var mı kontrol et
-    const existing = db.prepare(`SELECT id FROM budgets WHERE profileId = ? AND categoryId = ? AND month = ?`).get(session.profileId, categoryId, month) as any;
+    const existing = await db.prepare(`SELECT id FROM budgets WHERE profileId = ? AND categoryId = ? AND month = ?`).get(session.profileId, categoryId, month) as any;
     
     if (existing) {
-      db.prepare(`UPDATE budgets SET amountLimit = ? WHERE id = ?`).run(amountLimit, existing.id);
+      await db.prepare(`UPDATE budgets SET amountLimit = ? WHERE id = ?`).run(amountLimit, existing.id);
     } else {
-      db.prepare(`INSERT INTO budgets (profileId, categoryId, amountLimit, month) VALUES (?, ?, ?, ?)`).run(session.profileId, categoryId, amountLimit, month);
+      await db.prepare(`INSERT INTO budgets (profileId, categoryId, amountLimit, month) VALUES (?, ?, ?, ?)`).run(session.profileId, categoryId, amountLimit, month);
     }
     revalidatePath('/ayarlar');
     revalidatePath('/'); // Ana ekrandaki grafik güncellensin
@@ -71,7 +71,7 @@ async function deleteBudget(formData: FormData) {
   const session = await getSession();
   if (!session) return;
   const id = formData.get('id');
-  db.prepare(`DELETE FROM budgets WHERE id = ? AND profileId = ?`).run(id, session.profileId);
+  await db.prepare(`DELETE FROM budgets WHERE id = ? AND profileId = ?`).run(id, session.profileId);
   revalidatePath('/ayarlar');
   revalidatePath('/');
 }
@@ -82,15 +82,15 @@ export default async function AyarlarPage() {
   if (!session) return null;
 
   const currentMonth = format(new Date(), 'yyyy-MM');
-  const profile = db.prepare(`SELECT geminiApiKey FROM profiles WHERE id = ?`).get(session.profileId) as any;
+  const profile = await db.prepare(`SELECT geminiApiKey FROM profiles WHERE id = ?`).get(session.profileId) as any;
 
-  const categories = db.prepare(`SELECT * FROM categories WHERE profileId = ? ORDER BY type ASC, id DESC`).all(session.profileId) as any[];
+  const categories = await db.prepare(`SELECT * FROM categories WHERE profileId = ? ORDER BY type ASC, id DESC`).all(session.profileId) as any[];
   
   const incomeCats = categories.filter(c => c.type === 'INCOME');
   const expenseCats = categories.filter(c => c.type === 'EXPENSE');
 
   // Giderlerin bu ayki bütçelerini listelemek
-  const budgets = db.prepare(`
+  const budgets = await db.prepare(`
     SELECT b.*, c.name as categoryName 
     FROM budgets b
     JOIN categories c ON b.categoryId = c.id

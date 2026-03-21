@@ -12,10 +12,10 @@ export default async function CariEkstrePage({ params }: { params: { isim: strin
   const decodedName = decodeURIComponent(params.isim);
   
   // 1. Tüm Borç/Alacak kayıtları (Vade, Taksit)
-  const debts = db.prepare('SELECT * FROM debts WHERE personName = ? AND profileId = ? ORDER BY createdAt ASC').all(decodedName, session.profileId) as any[];
+  const debts = await db.prepare('SELECT * FROM debts WHERE personName = ? AND profileId = ? ORDER BY createdAt ASC').all(decodedName, session.profileId) as any[];
 
   // 2. İşlemler (Nakit, Havale - Eğer açıklama içinde geçiyorsa)
-  const transactions = db.prepare(`SELECT * FROM transactions WHERE description LIKE ? AND profileId = ? ORDER BY date ASC`).all(`%${decodedName}%`, session.profileId) as any[];
+  const transactions = await db.prepare(`SELECT * FROM transactions WHERE description LIKE ? AND profileId = ? ORDER BY date ASC`).all(`%${decodedName}%`, session.profileId) as any[];
 
   // Matematik: Kimin kime ne kadar borcu var?
   let totalBizeBorcu = 0;   // Müşterinin bize olan toplam borcu (Bize giren hizmet tutarı)
