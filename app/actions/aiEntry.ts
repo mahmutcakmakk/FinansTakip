@@ -15,7 +15,7 @@ export async function processAiEntry(formData: FormData) {
 
   try {
     // Profilin API anahtarını alıyoruz
-    const profile = await db.prepare(`SELECT geminiApiKey FROM profiles WHERE id = ?`).get(session.profileId) as any;
+    const profile = await db.prepare(`SELECT geminiApiKey as "geminiApiKey" FROM profiles WHERE id = ?`).get(session.profileId) as any;
     
     if (!profile || !profile.geminiApiKey) {
       return { error: "Ayarlar sayfasından lütfen Gemini API anahtarınızı (Token) kaydedin." };

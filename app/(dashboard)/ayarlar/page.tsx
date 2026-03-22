@@ -82,7 +82,7 @@ export default async function AyarlarPage() {
   if (!session) return null;
 
   const currentMonth = format(new Date(), 'yyyy-MM');
-  const profile = await db.prepare(`SELECT geminiApiKey FROM profiles WHERE id = ?`).get(session.profileId) as any;
+  const profile = await db.prepare(`SELECT geminiApiKey as "geminiApiKey" FROM profiles WHERE id = ?`).get(session.profileId) as any;
 
   const categories = await db.prepare(`SELECT * FROM categories WHERE profileId = ? ORDER BY type ASC, id DESC`).all(session.profileId) as any[];
   
