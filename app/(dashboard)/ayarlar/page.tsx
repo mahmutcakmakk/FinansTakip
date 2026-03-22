@@ -1,8 +1,26 @@
 import db from '@/lib/db';
-import { Settings, Plus, Trash2, Target, Sparkles, Key } from 'lucide-react';
+import { Settings, Plus, Trash2, Target, Sparkles, Key, Shield } from 'lucide-react';
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth';
 import { format } from 'date-fns';
+
+async function changePassword(formData: FormData) {
+  'use server';
+  const session = await getSession();
+  if (!session) return;
+  const oldPassword = formData.get('oldPassword') as string;
+  const newPassword = formData.get('newPassword') as string;
+  const confirmPassword = formData.get('confirmPassword') as string;
+
+  if (newPassword !== confirmPassword) redirect('/ayarlar?err=1');
+
+  const user = await db.prepare('SELECT password FROM profiles WHERE id = ?').get(session.profileId) as any;
+  if (user?.password !== oldPassword) redirect('/ayarlar?err=2');
+
+  await db.prepare('UPDATE profiles SET password = ? WHERE id = ?').run(newPassword, session.profileId);
+  redirect('/ayarlar?success=1');
+}
 
 async function saveGeminiKey(formData: FormData) {
   'use server';
@@ -77,9 +95,13 @@ async function deleteBudget(formData: FormData) {
 }
 
 
-export default async function AyarlarPage() {
+export default async function AyarlarPage({ searchParams }: { searchParams: any }) {
   const session = await getSession();
   if (!session) return null;
+
+  const sp = await searchParams;
+  const err = sp?.err;
+  const success = sp?.success;
 
   const currentMonth = format(new Date(), 'yyyy-MM');
   const profile = await db.prepare(`SELECT * FROM profiles WHERE id = ?`).get(session.profileId) as any;
@@ -210,6 +232,24 @@ export default async function AyarlarPage() {
               </div>
               <button type="submit" className="w-full p-3 rounded-xl font-bold flex justify-center items-center gap-2 bg-[#0ea5e9] text-white hover:bg-[#0284c7] transition-colors shadow-[0_4px_15px_rgba(14,165,233,0.3)]">
                 Kaydet & Aktifleştir
+              </button>
+            </form>
+          </div>
+
+          <div className="glass-card p-6 border-t-4 border-[#ff3366]">
+            <h5 className="font-bold text-lg mb-4 flex items-center gap-2 text-[#ff3366]"><Shield className="w-5 h-5"/> Güvenlik Düzeyi</h5>
+            <p className="text-sm text-[#8e95a5] mb-4">Sisteme giriş yaptığınız hesabınızın parolasını buradan yenileyebilirsiniz.</p>
+            
+            {err === '1' && <div className="mb-4 p-3 rounded-xl bg-[rgba(255,51,102,0.1)] border border-[rgba(255,51,102,0.3)] text-[var(--color-neon-red)] text-sm">Yeni şifreler eşleşmiyor!</div>}
+            {err === '2' && <div className="mb-4 p-3 rounded-xl bg-[rgba(255,51,102,0.1)] border border-[rgba(255,51,102,0.3)] text-[var(--color-neon-red)] text-sm">Mevcut şifrenizi yanlış girdiniz!</div>}
+            {success === '1' && <div className="mb-4 p-3 rounded-xl bg-[rgba(0,255,136,0.1)] border border-[rgba(0,255,136,0.3)] text-[var(--color-neon-green)] text-sm">Hesap parolanız başarıyla güncellendi!</div>}
+
+            <form action={changePassword} className="space-y-4">
+              <input type="password" name="oldPassword" required className="glass-input w-full p-3 rounded-xl" placeholder="Mevcut Şifreniz" />
+              <input type="password" name="newPassword" required className="glass-input w-full p-3 rounded-xl focus:border-[var(--color-neon-red)]" placeholder="Yeni Şifreniz" />
+              <input type="password" name="confirmPassword" required className="glass-input w-full p-3 rounded-xl focus:border-[var(--color-neon-red)]" placeholder="Yeni Şifreniz (Tekrar)" />
+              <button type="submit" className="w-full p-3 rounded-xl font-bold flex justify-center items-center gap-2 bg-[#ff3366] text-white hover:bg-[#e62e5c] transition-colors shadow-[0_4px_15px_rgba(255,51,102,0.3)]">
+                Parolayı Güncelle
               </button>
             </form>
           </div>
