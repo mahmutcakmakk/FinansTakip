@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import { format } from 'date-fns';
 
 const TELEGRAM_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_TOKEN}`;
@@ -64,15 +66,17 @@ export async function POST(req: Request) {
       aiMessageId = waitRes?.result?.message_id;
     } catch {}
 
-    if (!profile.geminiapikey) {
+    const apiKey = profile.geminiApiKey || profile.geminiapikey;
+
+    if (!apiKey) {
       await sendMessage(chatId, "⚠️ Ayarlar sayfasından lütfen Gemini API anahtarınızı (Token) sisteme kaydedin. Şifre alanı boş.");
+      if (aiMessageId) {
+         await fetch(`${TELEGRAM_API}/deleteMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: chatId, message_id: aiMessageId }) });
+      }
       return NextResponse.json({ ok: true });
     }
 
-    const { GoogleGenerativeAI } = await import('@google/generative-ai');
-    const { format } = await import('date-fns');
-
-    const genAI = new GoogleGenerativeAI(profile.geminiapikey);
+    const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const wallets = await db.prepare(`SELECT id, name FROM wallets WHERE profileId = ?`).all(profile.id) as any[];
@@ -140,12 +144,12 @@ export async function POST(req: Request) {
     console.error("Telegram Webhook Sunucu Hatası:", error);
     
     if (chatId) {
-      let errorMsg = "❌ İşlem sırasında teknik bir hata oluştu veya yapay zeka cümlenizi anlayamadı.";
+      let errorMsg = `❌ İşlem sırasında teknik bir hata oluştu veya yapay zeka cümlenizi anlayamadı.\n\n<b>Hata Kaynağı:</b> <code>${error?.message || "Bilinmiyor"}</code>`;
       
       if (error?.message?.includes('API key not valid')) {
         errorMsg = "❌ <b>Girdiğiniz Gemini API anahtarı geçersiz veya süresi dolmuş!</b>\nLütfen Google AI Studio üzerinden aldığınız doğru şifreyi Ayarlar sayfasına kaydedin.";
       } else if (error?.message?.includes('Unexpected token')) {
-        errorMsg = "🤖 Anlayamadığım bir durum oluştu, lütfen harcamayı daha net ve sade bir dille yazın. (Örn: A marketinden 50 tl gıda alışverişi yaptım)";
+        errorMsg = `🤖 Anlayamadığım bir durum oluştu, lütfen harcamayı daha net ve sade bir dille yazın. (Örn: A marketinden 50 tl gıda alışverişi yaptım)\n\n<i>Özel Hata: ${error?.message}</i>`;
       }
 
       await sendMessage(chatId, errorMsg);
