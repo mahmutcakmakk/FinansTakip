@@ -14,31 +14,30 @@ async function sendMessage(chatId: string, text: string) {
 }
 
 export async function POST(req: Request) {
+  let chatId = "";
+  let aiMessageId: number | undefined;
+
   try {
     const body = await req.json();
     
-    // Yalnızca mesaj içerikli komutları önemse
     if (!body || !body.message || !body.message.text) return NextResponse.json({ ok: true });
 
-    const chatId = body.message.chat.id.toString();
+    chatId = body.message.chat.id.toString();
     const text = body.message.text.trim();
 
     // 1. Veritabanında bu Telegram hesabı kayıtlı mı?
     const profile = await db.prepare('SELECT * FROM profiles WHERE telegramChatId = ?').get(chatId) as any;
 
     if (!profile) {
-      // 1.1 Henüz eşleşmemişse (Kayıtlı değilse) şifre iste
       if (text.startsWith('/start')) {
          await sendMessage(chatId, "👋 <b>FinansTakip Yapay Zeka (CFO) Yönetimine Hoş Geldiniz!</b>\n\nYetkilendirilmeniz için lütfen sisteme giriş yaptığınız <b>Kullanıcı Adınızı</b> ve <b>Şifrenizi</b> aralarında boşluk bırakarak gönderin.\n\n<i>Örnek Format:</i>\n<code>ortak 123456</code>");
          return NextResponse.json({ ok: true });
       }
 
-      // Parçala ve Güvenlik/Login Kontrolü Yap
       const parts = text.split(' ');
       if (parts.length === 2) {
          const match = await db.prepare('SELECT * FROM profiles WHERE username = ? AND password = ?').get(parts[0], parts[1]) as any;
          if (match) {
-            // Şifre doğru, hesabı Telegram ID ile eşleştir (Kilit mekanizması devrede)
             await db.prepare('UPDATE profiles SET telegramChatId = ? WHERE id = ?').run(chatId, match.id);
             await sendMessage(chatId, `✅ <b>Kimlik doğrulama başarılı!</b>\n\nHoş geldin, <b>${match.name}</b>. Artık güvenlik onayınız tanımlandı.\n\nBana doğal dilde harcama veya tahsilatlarını yazabilirsin, ben anlayıp veritabanına işleyeceğim.\n\n<i>Örnek Kullanım:</i>\n"Ahmet Abiden bugün 5000 lira nakit tahsil ettim."\n"Şok marketten 200 lira ofis malzemesi aldım."`);
          } else {
@@ -47,18 +46,15 @@ export async function POST(req: Request) {
       } else {
          await sendMessage(chatId, "⚠️ Lütfen <b>Kullanıcı Adı</b> ve <b>Şifrenizi</b> arasında bir boşluk bırakarak eksiksiz girin.\n\n<i>Örnek:</i>\n<code>ortak 123456</code>");
       }
-      return NextResponse.json({ ok: true }); // Telegram arka plan döngüsünü kırma
+      return NextResponse.json({ ok: true }); 
     }
 
-    // 2. Kullanıcı Kayıtlı! Yapay Zeka veya Manuel komutları analiz et...
     if (text === '/rapor' || text.toLowerCase() === 'rapor') {
       await sendMessage(chatId, "📊 Aylık raporunuz hazırlanıyor, birkaç saniye sürebilir...");
-      // TODO: Cron rapor yapısı veya manuel rapor dönülecek
       return NextResponse.json({ ok: true });
     }
 
-    // 3. Gemini AI İstek Atma:
-    let aiMessageId: number | undefined;
+    // 3. Gemini AI İşlemi Bildirimi:
     try {
       const waitRes = await fetch(`${TELEGRAM_API}/sendMessage`, {
         method: 'POST',
@@ -69,7 +65,7 @@ export async function POST(req: Request) {
     } catch {}
 
     if (!profile.geminiapikey) {
-      await sendMessage(chatId, "⚠️ Ayarlar sayfasından lütfen Gemini API anahtarınızı sisteme kaydedin.");
+      await sendMessage(chatId, "⚠️ Ayarlar sayfasından lütfen Gemini API anahtarınızı (Token) sisteme kaydedin. Şifre alanı boş.");
       return NextResponse.json({ ok: true });
     }
 
@@ -140,8 +136,28 @@ export async function POST(req: Request) {
     await sendMessage(chatId, infoText);
     return NextResponse.json({ ok: true });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("Telegram Webhook Sunucu Hatası:", error);
+    
+    if (chatId) {
+      let errorMsg = "❌ İşlem sırasında teknik bir hata oluştu veya yapay zeka cümlenizi anlayamadı.";
+      
+      if (error?.message?.includes('API key not valid')) {
+        errorMsg = "❌ <b>Girdiğiniz Gemini API anahtarı geçersiz veya süresi dolmuş!</b>\nLütfen Google AI Studio üzerinden aldığınız doğru şifreyi Ayarlar sayfasına kaydedin.";
+      } else if (error?.message?.includes('Unexpected token')) {
+        errorMsg = "🤖 Anlayamadığım bir durum oluştu, lütfen harcamayı daha net ve sade bir dille yazın. (Örn: A marketinden 50 tl gıda alışverişi yaptım)";
+      }
+
+      await sendMessage(chatId, errorMsg);
+      if (aiMessageId) {
+        await fetch(`${TELEGRAM_API}/deleteMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chat_id: chatId, message_id: aiMessageId })
+        });
+      }
+    }
+    
     return NextResponse.json({ ok: true }); 
   }
 }
