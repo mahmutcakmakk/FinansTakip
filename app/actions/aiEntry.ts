@@ -14,14 +14,15 @@ export async function processAiEntry(formData: FormData) {
   if (!promptText || promptText.trim() === '') return { error: "Lütfen bir metin girin." };
 
   try {
-    // Profilin API anahtarını alıyoruz
-    const profile = await db.prepare(`SELECT geminiApiKey as "geminiApiKey" FROM profiles WHERE id = ?`).get(session.profileId) as any;
+    // Profilin API anahtarını alıyoruz (PostgreSQL case-insensitive çalışmayı garantiye al)
+    const profile = await db.prepare(`SELECT * FROM profiles WHERE id = ?`).get(session.profileId) as any;
     
-    if (!profile || !profile.geminiApiKey) {
+    const apiKey = profile?.geminiApiKey || profile?.geminiapikey;
+    if (!profile || !apiKey) {
       return { error: "Ayarlar sayfasından lütfen Gemini API anahtarınızı (Token) kaydedin." };
     }
 
-    const genAI = new GoogleGenerativeAI(profile.geminiApiKey);
+    const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     // Veritabanındaki cüzdanları ve kategorileri çekip yapay zekaya öğretelim
