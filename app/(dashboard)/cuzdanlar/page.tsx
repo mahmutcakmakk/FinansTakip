@@ -1,5 +1,5 @@
 import db from '@/lib/db';
-import { Wallet, Plus, Trash2, Landmark, CreditCard, Coins, ArrowRightLeft } from 'lucide-react';
+import { Wallet, Plus, Trash2, Landmark, CreditCard, Coins, ArrowRightLeft, Bitcoin } from 'lucide-react';
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth';
 import { format } from 'date-fns';
@@ -76,12 +76,14 @@ export default async function CuzdanlarPage() {
   const getIcon = (type: string) => {
     if (type === 'BANK') return <Landmark className="w-8 h-8 text-[var(--color-neon-blue)]" />;
     if (type === 'POS') return <CreditCard className="w-8 h-8 text-[var(--color-neon-purple)]" />;
+    if (type === 'CRYPTO') return <Bitcoin className="w-8 h-8 text-[#f7931a]" />;
     return <Coins className="w-8 h-8 text-[var(--color-neon-green)]" />;
   };
 
   const getTypeName = (type: string) => {
     if (type === 'BANK') return 'Banka Hesabı';
     if (type === 'POS') return 'POS / Sanal Pos';
+    if (type === 'CRYPTO') return 'Kripto Kasa (BTC)';
     return 'Nakit Kasa';
   };
 
@@ -106,6 +108,7 @@ export default async function CuzdanlarPage() {
                   <option value="CASH">Nakit Kasa</option>
                   <option value="BANK">Banka Hesabı</option>
                   <option value="POS">POS Cüzdanı</option>
+                  <option value="CRYPTO">Kripto / Bitcoin</option>
                 </select>
               </div>
               <div>

@@ -13,7 +13,7 @@ async function addSubscription(formData: FormData) {
   const dueDay = parseInt(formData.get('dueDay') as string);
 
   if (name && amount && dueDay) {
-    await db.prepare(`INSERT INTO subscriptions (name, amount, dueDay, profileId) VALUES (?, ?, ?, ?)`).run(name, amount, dueDay, session.profileId);
+    await db.prepare(`INSERT INTO subscriptions (name, amount, dayOfMonth, profileId) VALUES (?, ?, ?, ?)`).run(name, amount, dueDay, session.profileId);
     revalidatePath('/abonelikler');
   }
 }

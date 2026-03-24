@@ -1,6 +1,6 @@
 import db from '@/lib/db';
 import { format } from 'date-fns';
-import { TrendingDown, Minus, Trash2 } from 'lucide-react';
+import { TrendingDown, Minus, Trash2, Edit2, Check, X } from 'lucide-react';
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth';
 
@@ -16,6 +16,26 @@ async function addExpense(formData: FormData) {
 
   if (amount && categoryId && date) {
     await db.prepare(`INSERT INTO transactions (type, amount, categoryId, description, date, profileId) VALUES ('EXPENSE', ?, ?, ?, ?, ?)`).run(amount, categoryId, description, date, session.profileId);
+    revalidatePath('/giderler');
+    revalidatePath('/giderler');
+    revalidatePath('/');
+  }
+}
+
+async function updateExpense(formData: FormData) {
+  'use server';
+  const session = await getSession();
+  if (!session) return;
+
+  const id = formData.get('id');
+  const amount = parseFloat(formData.get('amount') as string);
+  const categoryId = parseInt(formData.get('categoryId') as string);
+  const date = formData.get('date') as string;
+  const description = formData.get('description') as string;
+
+  if (id && amount && categoryId && date) {
+    await db.prepare(`UPDATE transactions SET amount = ?, categoryId = ?, date = ?, description = ? WHERE id = ? AND profileId = ? AND type = 'EXPENSE'`)
+      .run(amount, categoryId, date, description, id, session.profileId);
     revalidatePath('/giderler');
     revalidatePath('/');
   }
@@ -39,6 +59,7 @@ export default async function GiderlerPage({ searchParams }: { searchParams: any
   const params = await searchParams;
   const currentMonth = format(new Date(), 'yyyy-MM');
   const monthFilter = params?.month || currentMonth;
+  const editId = params?.edit;
 
   const categories = await db.prepare(`SELECT * FROM categories WHERE type = 'EXPENSE' AND profileId = ?`).all(session.profileId) as any[];
   
@@ -131,20 +152,45 @@ export default async function GiderlerPage({ searchParams }: { searchParams: any
                   <tr><td colSpan={5} className="text-center py-6 text-[#8e95a5]">Henüz gider kaydı yok.</td></tr>
                 ) : (
                   expenses.map((exp) => (
-                    <tr key={exp.id} className="border-b border-[#ffffff0a] hover:bg-[#ffffff05] transition-colors">
-                      <td className="py-4 px-4">{format(new Date(exp.date), 'dd.MM.yyyy')}</td>
-                      <td className="py-4 px-4"><span className="px-3 py-1 bg-black/40 border border-[#ffffff14] rounded-lg text-sm">{exp.categoryName}</span></td>
-                      <td className="py-4 px-4 text-[#8e95a5]">{exp.description || '-'}</td>
-                      <td className="py-4 px-4 text-right font-bold text-[var(--color-neon-red)]">-{formatMoney(exp.amount)}</td>
-                      <td className="py-4 px-4 text-center">
-                        <form action={deleteExpense}>
-                          <input type="hidden" name="id" value={exp.id} />
-                          <button type="submit" className="p-2 text-[#8e95a5] hover:text-[var(--color-neon-red)] hover:bg-[rgba(255,51,102,0.1)] rounded-lg transition-colors" title="Sil">
-                            <Trash2 className="w-5 h-5 mx-auto" />
-                          </button>
-                        </form>
-                      </td>
-                    </tr>
+                    editId === exp.id.toString() ? (
+                      <tr key={exp.id} className="border-b border-[#ffffff14] bg-[rgba(0,240,255,0.05)]">
+                        <td colSpan={5} className="p-3">
+                          <form action={updateExpense} className="flex flex-col xl:flex-row gap-3 items-center w-full">
+                            <input type="hidden" name="id" value={exp.id} />
+                            <input type="date" name="date" required defaultValue={exp.date.split('T')[0]} className="glass-input p-2 rounded-lg w-full xl:w-auto text-sm" />
+                            <select name="categoryId" required defaultValue={exp.categoryId} className="glass-input p-2 rounded-lg w-full xl:w-48 text-sm">
+                              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                            </select>
+                            <input type="text" name="description" defaultValue={exp.description || ''} className="glass-input p-2 rounded-lg w-full xl:flex-1 text-sm" placeholder="Kısa Açıklama" />
+                            <input type="number" step="0.01" name="amount" required defaultValue={exp.amount} className="glass-input p-2 rounded-lg w-full xl:w-32 font-bold text-[var(--color-neon-red)]" />
+                            <div className="flex gap-2 w-full xl:w-auto justify-end">
+                              <button type="submit" className="p-2 bg-[var(--color-neon-blue)] text-black rounded-lg hover:scale-105 transition-all"><Check className="w-5 h-5"/></button>
+                              <a href={`/giderler?month=${monthFilter}`} className="p-2 bg-[#ffffff14] text-white rounded-lg hover:scale-105 transition-all"><X className="w-5 h-5"/></a>
+                            </div>
+                          </form>
+                        </td>
+                      </tr>
+                    ) : (
+                      <tr key={exp.id} className="border-b border-[#ffffff0a] hover:bg-[#ffffff05] transition-colors">
+                        <td className="py-4 px-4">{format(new Date(exp.date), 'dd.MM.yyyy')}</td>
+                        <td className="py-4 px-4"><span className="px-3 py-1 bg-black/40 border border-[#ffffff14] rounded-lg text-sm">{exp.categoryName}</span></td>
+                        <td className="py-4 px-4 text-[#8e95a5]">{exp.description || '-'}</td>
+                        <td className="py-4 px-4 text-right font-bold text-[var(--color-neon-red)]">-{formatMoney(exp.amount)}</td>
+                        <td className="py-4 px-4 text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            <a href={`/giderler?month=${monthFilter}&edit=${exp.id}`} className="p-2 text-[#8e95a5] hover:text-[var(--color-neon-blue)] hover:bg-[rgba(0,240,255,0.1)] rounded-lg transition-colors" title="Düzenle">
+                              <Edit2 className="w-4 h-4" />
+                            </a>
+                            <form action={deleteExpense}>
+                              <input type="hidden" name="id" value={exp.id} />
+                              <button type="submit" className="p-2 text-[#8e95a5] hover:text-[var(--color-neon-red)] hover:bg-[rgba(255,51,102,0.1)] rounded-lg transition-colors" title="Sil">
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </form>
+                          </div>
+                        </td>
+                      </tr>
+                    )
                   ))
                 )}
               </tbody>
