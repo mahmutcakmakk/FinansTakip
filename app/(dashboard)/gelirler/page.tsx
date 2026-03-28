@@ -2,6 +2,7 @@ import db from '@/lib/db';
 import { format } from 'date-fns';
 import { TrendingUp, Plus, Trash2, Edit2, Check, X } from 'lucide-react';
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth';
 
 async function addIncome(formData: FormData) {
@@ -38,6 +39,7 @@ async function updateIncome(formData: FormData) {
       .run(amount, categoryId, date, description, id, session.profileId);
     revalidatePath('/gelirler');
     revalidatePath('/');
+    redirect('/gelirler');
   }
 }
 

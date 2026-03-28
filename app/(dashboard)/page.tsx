@@ -16,8 +16,8 @@ async function getDashboardData(profileId: number) {
   const today = format(new Date(), 'yyyy-MM-dd');
   const thisMonth = format(new Date(), 'yyyy-MM');
 
-  const todayIncome = await db.prepare(`SELECT SUM(amount) as total FROM transactions WHERE type = 'INCOME' AND date = ? AND profileId = ?`).get(today, profileId) as {total: number|null};
-  const todayExpense = await db.prepare(`SELECT SUM(amount) as total FROM transactions WHERE type = 'EXPENSE' AND date = ? AND profileId = ?`).get(today, profileId) as {total: number|null};
+  const todayIncome = await db.prepare(`SELECT SUM(amount) as total FROM transactions WHERE type = 'INCOME' AND date LIKE ? AND profileId = ?`).get(`${today}%`, profileId) as {total: number|null};
+  const todayExpense = await db.prepare(`SELECT SUM(amount) as total FROM transactions WHERE type = 'EXPENSE' AND date LIKE ? AND profileId = ?`).get(`${today}%`, profileId) as {total: number|null};
   const monthIncome = await db.prepare(`SELECT SUM(amount) as total FROM transactions WHERE type = 'INCOME' AND date LIKE ? AND profileId = ?`).get(`${thisMonth}%`, profileId) as {total: number|null};
   const monthExpense = await db.prepare(`SELECT SUM(amount) as total FROM transactions WHERE type = 'EXPENSE' AND date LIKE ? AND profileId = ?`).get(`${thisMonth}%`, profileId) as {total: number|null};
   

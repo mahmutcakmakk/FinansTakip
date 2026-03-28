@@ -1,6 +1,7 @@
 import db from '@/lib/db';
 import { Wallet, Plus, Trash2, Landmark, CreditCard, Coins, ArrowRightLeft, Bitcoin, Edit2, Check, X } from 'lucide-react';
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth';
 import { format } from 'date-fns';
 
@@ -43,9 +44,21 @@ async function updateWallet(formData: FormData) {
 
   if (id && name) {
     await db.prepare(`UPDATE wallets SET name = ?, balance = ? WHERE id = ? AND profileId = ?`).run(name, balance, id, session.profileId);
-    revalidatePath('/cuzdanlar');
     revalidatePath('/'); // Panoda da güncellenmesi için
+    revalidatePath('/cuzdanlar');
+    redirect('/cuzdanlar');
   }
+}
+
+async function deleteTransfer(formData: FormData) {
+  'use server';
+  const session = await getSession();
+  if (!session) return;
+  
+  const id = formData.get('id');
+  await db.prepare(`DELETE FROM transfers WHERE id = ? AND profileId = ?`).run(id, session.profileId);
+  revalidatePath('/cuzdanlar');
+  revalidatePath('/');
 }
 
 async function transferMoney(formData: FormData) {
@@ -261,6 +274,7 @@ export default async function CuzdanlarPage({ searchParams }: { searchParams: an
                     <th className="py-3 px-4 font-medium">Kimden - Kime</th>
                     <th className="py-3 px-4 font-medium">Açıklama</th>
                     <th className="py-3 px-4 font-medium text-right">Tutar</th>
+                    <th className="py-3 px-4 font-medium text-center">İşlem</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -277,6 +291,14 @@ export default async function CuzdanlarPage({ searchParams }: { searchParams: an
                         </td>
                         <td className="py-4 px-4 text-sm text-[#8e95a5]">{t.description || '-'}</td>
                         <td className="py-4 px-4 text-right font-bold text-yellow-500">{formatMoney(t.amount)}</td>
+                        <td className="py-4 px-4 text-center">
+                          <form action={deleteTransfer} className="inline-block">
+                            <input type="hidden" name="id" value={t.id} />
+                            <button type="submit" className="p-2 text-[#8e95a5] hover:text-[var(--color-neon-red)] hover:bg-[rgba(255,51,102,0.1)] rounded-lg transition-colors" title="Transfer Kaydını Sil (Sadece Buradan Siler)">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </form>
+                        </td>
                       </tr>
                     ))
                   )}

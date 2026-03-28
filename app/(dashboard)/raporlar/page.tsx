@@ -4,10 +4,11 @@ import { getSession } from '@/lib/auth';
 import { TrendingUp, TrendingDown, Target, LineChart, PieChart as PieChartIcon } from 'lucide-react';
 import ExpensePieChart from '@/components/ExpensePieChart';
 
-export default async function RaporlarPage({ searchParams }: { searchParams: { start?: string, end?: string } }) {
+export default async function RaporlarPage(props: { searchParams: Promise<{ start?: string, end?: string }> }) {
   const session = await getSession();
   if(!session) return null;
 
+  const searchParams = await props.searchParams;
   const today = format(new Date(), 'yyyy-MM-dd');
   const thisMonthStart = format(startOfMonth(new Date()), 'yyyy-MM-dd');
 

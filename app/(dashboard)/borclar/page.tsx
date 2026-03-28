@@ -1,7 +1,7 @@
 import db from '@/lib/db';
 import { format } from 'date-fns';
-import { Handshake, Plus, Trash2, CheckCircle } from 'lucide-react';
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth';
 
 async function addDebt(formData: FormData) {
@@ -79,8 +79,10 @@ async function deleteDebt(formData: FormData) {
   const session = await getSession();
   if (!session) return;
 
-  const id = formData.get('id');
-  await db.prepare(`DELETE FROM debts WHERE id = ? AND profileId = ?`).run(id, session.profileId);
+  const id = parseInt(formData.get('id') as string, 10);
+  if (!id) return;
+  
+  await db.prepare(`DELETE FROM debts WHERE id = ? AND (profileId = ? OR profileId IS NULL)`).run(id, session.profileId);
   revalidatePath('/borclar');
   revalidatePath('/');
 }
