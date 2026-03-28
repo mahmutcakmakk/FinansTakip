@@ -1,5 +1,5 @@
 import db from '@/lib/db';
-import { Wallet, Plus, Trash2, Landmark, CreditCard, Coins, ArrowRightLeft, Bitcoin } from 'lucide-react';
+import { Wallet, Plus, Trash2, Landmark, CreditCard, Coins, ArrowRightLeft, Bitcoin, Edit2, Check, X } from 'lucide-react';
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth';
 import { format } from 'date-fns';
@@ -32,6 +32,22 @@ async function deleteWallet(formData: FormData) {
   revalidatePath('/cuzdanlar');
 }
 
+async function updateWallet(formData: FormData) {
+  'use server';
+  const session = await getSession();
+  if (!session) return;
+
+  const id = formData.get('id');
+  const name = formData.get('name') as string;
+  const balance = parseFloat(formData.get('balance') as string) || 0;
+
+  if (id && name) {
+    await db.prepare(`UPDATE wallets SET name = ?, balance = ? WHERE id = ? AND profileId = ?`).run(name, balance, id, session.profileId);
+    revalidatePath('/cuzdanlar');
+    revalidatePath('/'); // Panoda da güncellenmesi için
+  }
+}
+
 async function transferMoney(formData: FormData) {
   'use server';
   const session = await getSession();
@@ -54,9 +70,12 @@ async function transferMoney(formData: FormData) {
   }
 }
 
-export default async function CuzdanlarPage() {
+export default async function CuzdanlarPage({ searchParams }: { searchParams: any }) {
   const session = await getSession();
   if (!session) return null;
+
+  const params = await searchParams;
+  const editId = params?.edit;
 
   const wallets = await db.prepare(`SELECT * FROM wallets WHERE profileId = ? ORDER BY id DESC`).all(session.profileId) as any[];
   
@@ -177,30 +196,55 @@ export default async function CuzdanlarPage() {
                   <div key={wallet.id} className="p-5 rounded-2xl bg-[#ffffff05] border border-[rgba(0,240,255,0.2)] flex flex-col gap-4 relative overflow-hidden group">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--color-neon-blue)] rounded-full blur-[80px] opacity-10 group-hover:opacity-20 transition-opacity"></div>
                     
-                    <div className="flex justify-between items-start relative z-10">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-xl bg-[rgba(0,240,255,0.05)] border border-[rgba(0,240,255,0.1)] flex items-center justify-center">
-                          {getIcon(wallet.type)}
+                    {editId === wallet.id.toString() ? (
+                      <form action={updateWallet} className="flex flex-col gap-3 w-full relative z-20">
+                        <input type="hidden" name="id" value={wallet.id} />
+                        <div>
+                          <label className="text-xs text-[#8e95a5]">Cüzdan Adı</label>
+                          <input type="text" name="name" required defaultValue={wallet.name} className="glass-input w-full p-2 rounded-lg text-sm" />
                         </div>
                         <div>
-                          <h4 className="font-bold text-lg">{wallet.name}</h4>
-                          <p className="text-xs text-[#8e95a5] uppercase tracking-wider">{getTypeName(wallet.type)}</p>
+                          <label className="text-xs text-[#8e95a5]">Bakiye (₺)</label>
+                          <input type="number" step="0.01" name="balance" required defaultValue={wallet.balance} className="glass-input w-full p-2 rounded-lg text-sm font-bold text-[var(--color-neon-blue)]" />
                         </div>
-                      </div>
-                      <form action={deleteWallet}>
-                        <input type="hidden" name="id" value={wallet.id} />
-                        <button type="submit" className="p-2 text-[#8e95a5] hover:text-[var(--color-neon-red)] hover:bg-[rgba(255,51,102,0.1)] rounded-lg transition-colors" title="Cüzdanı Sil">
-                          <Trash2 className="w-5 h-5" />
-                        </button>
+                        <div className="flex gap-2 justify-end mt-2">
+                           <button type="submit" className="p-2 bg-[var(--color-neon-blue)] text-black rounded-lg hover:scale-105 transition-all"><Check className="w-5 h-5"/></button>
+                           <a href="/cuzdanlar" className="p-2 bg-[#ffffff14] text-white rounded-lg hover:scale-105 transition-all"><X className="w-5 h-5"/></a>
+                        </div>
                       </form>
-                    </div>
-                    
-                    <div className="mt-2 relative z-10">
-                      <p className="text-sm text-[#8e95a5] mb-1">Mevcut Bakiye</p>
-                      <h3 className={`text-3xl font-bold tracking-tight ${wallet.balance < 0 ? 'text-[var(--color-neon-red)]' : 'text-white'}`}>
-                        {formatMoney(wallet.balance)}
-                      </h3>
-                    </div>
+                    ) : (
+                      <>
+                        <div className="flex justify-between items-start relative z-10">
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-xl bg-[rgba(0,240,255,0.05)] border border-[rgba(0,240,255,0.1)] flex items-center justify-center">
+                              {getIcon(wallet.type)}
+                            </div>
+                            <div>
+                              <h4 className="font-bold text-lg">{wallet.name}</h4>
+                              <p className="text-xs text-[#8e95a5] uppercase tracking-wider">{getTypeName(wallet.type)}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <a href={`/cuzdanlar?edit=${wallet.id}`} className="p-2 text-[#8e95a5] hover:text-[var(--color-neon-blue)] hover:bg-[rgba(0,240,255,0.1)] rounded-lg transition-colors" title="Cüzdanı Düzenle">
+                              <Edit2 className="w-4 h-4" />
+                            </a>
+                            <form action={deleteWallet}>
+                              <input type="hidden" name="id" value={wallet.id} />
+                              <button type="submit" className="p-2 text-[#8e95a5] hover:text-[var(--color-neon-red)] hover:bg-[rgba(255,51,102,0.1)] rounded-lg transition-colors" title="Cüzdanı Sil">
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </form>
+                          </div>
+                        </div>
+                        
+                        <div className="mt-2 relative z-10">
+                          <p className="text-sm text-[#8e95a5] mb-1">Mevcut Bakiye</p>
+                          <h3 className={`text-3xl font-bold tracking-tight ${wallet.balance < 0 ? 'text-[var(--color-neon-red)]' : 'text-white'}`}>
+                            {formatMoney(wallet.balance)}
+                          </h3>
+                        </div>
+                      </>
+                    )}
                   </div>
                 ))
               )}
