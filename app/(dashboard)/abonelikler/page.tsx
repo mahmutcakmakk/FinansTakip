@@ -28,18 +28,31 @@ async function deleteSubscription(formData: FormData) {
   revalidatePath('/abonelikler');
 }
 
-export default async function AboneliklerPage() {
+export default async function AboneliklerPage({ searchParams }: { searchParams: any }) {
   const session = await getSession();
   if (!session) return null;
 
-  const subscriptions = await db.prepare(`SELECT * FROM subscriptions WHERE profileId = ? ORDER BY dueDay ASC`).all(session.profileId) as any[];
+  const params = await searchParams;
+  const searchQuery = params?.q || '';
+
+  let query = `SELECT * FROM subscriptions WHERE profileId = ?`;
+  const queryParams: any[] = [session.profileId];
+
+  if (searchQuery) {
+    query += ` AND name ILIKE ?`;
+    queryParams.push(`%${searchQuery}%`);
+  }
+
+  query += ` ORDER BY dayOfMonth ASC`;
+
+  const subscriptions = await db.prepare(query).all(...queryParams) as any[];
 
   const formatMoney = (val: number) => new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(val);
   const totalMonthly = subscriptions.reduce((acc, sub) => acc + sub.amount, 0);
 
   return (
     <div className="space-y-6 pt-16 md:pt-0">
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-bold flex items-center gap-3">
           <CalendarDays className="text-[var(--color-neon-blue)] w-8 h-8" /> 
           Sabit Giderler (Abonelik)
@@ -47,6 +60,20 @@ export default async function AboneliklerPage() {
         <div className="bg-[rgba(255,51,102,0.1)] border border-[rgba(255,51,102,0.3)] px-4 py-2 rounded-xl text-[var(--color-neon-red)] font-bold">
           Aylık Toplam: {formatMoney(totalMonthly)}
         </div>
+      </div>
+
+      {/* Filtreleme Barı */}
+      <div className="glass-card p-4">
+        <form method="GET" className="flex flex-col sm:flex-row gap-4 items-end">
+          <div className="flex-1 w-full">
+            <label className="block text-sm text-[#8e95a5] mb-1">Abonelik Adında Ara</label>
+            <input type="text" name="q" defaultValue={searchQuery} placeholder="Abonelik adı..." className="glass-input w-full p-2.5 rounded-xl" />
+          </div>
+          <div className="flex gap-2 w-full sm:w-auto">
+            <button type="submit" className="px-6 py-2.5 rounded-xl font-bold bg-[#ffffff14] hover:bg-[#ffffff20] transition-colors">Ara</button>
+            <a href="/abonelikler" className="px-6 py-2.5 rounded-xl font-bold text-[#8e95a5] hover:text-white border border-[#ffffff14] transition-colors text-center w-full sm:w-auto">Sıfırla</a>
+          </div>
+        </form>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -89,7 +116,7 @@ export default async function AboneliklerPage() {
                       </div>
                       <div>
                         <h4 className="font-bold text-lg text-white">{sub.name}</h4>
-                        <p className="text-xs text-[#8e95a5]">Her ayın <span className="text-[var(--color-neon-blue)] font-bold">{sub.dueDay}.</span> günü</p>
+                        <p className="text-xs text-[#8e95a5]">Her ayın <span className="text-[var(--color-neon-blue)] font-bold">{sub.dayOfMonth}.</span> günü</p>
                       </div>
                     </div>
                     <form action={deleteSubscription}>

@@ -59,9 +59,10 @@ export default async function GiderlerPage({ searchParams }: { searchParams: any
   const params = await searchParams;
   const currentMonth = format(new Date(), 'yyyy-MM');
   const monthFilter = params?.month || currentMonth;
+  const categoryFilter = params?.categoryId || 'all';
   const editId = params?.edit;
 
-  const categories = await db.prepare(`SELECT * FROM categories WHERE type = 'EXPENSE' AND profileId = ?`).all(session.profileId) as any[];
+  const categories = await db.prepare(`SELECT * FROM categories WHERE type = 'EXPENSE' AND (profileId = ? OR profileId IS NULL) ORDER BY name ASC`).all(session.profileId) as any[];
   
   let query = `
     SELECT t.*, c.name as categoryName 
@@ -74,6 +75,11 @@ export default async function GiderlerPage({ searchParams }: { searchParams: any
   if (monthFilter !== 'all') {
     query += ` AND t.date LIKE ? `;
     queryParams.push(`${monthFilter}%`);
+  }
+  
+  if (categoryFilter !== 'all') {
+    query += ` AND t.categoryId = ? `;
+    queryParams.push(categoryFilter);
   }
   
   query += ` ORDER BY t.date DESC, t.id DESC`;
@@ -92,13 +98,20 @@ export default async function GiderlerPage({ searchParams }: { searchParams: any
       {/* Filtreleme Barı */}
       <div className="glass-card p-4">
         <form method="GET" className="flex flex-col sm:flex-row gap-4 items-end">
-          <div className="flex-1 w-full">
+          <div className="flex-1 w-full sm:w-1/3">
             <label className="block text-sm text-[#8e95a5] mb-1">Aya Göre Filtrele</label>
             <input type="month" name="month" defaultValue={monthFilter === 'all' ? '' : monthFilter} className="glass-input w-full p-2.5 rounded-xl" />
           </div>
+          <div className="flex-1 w-full sm:w-1/3">
+            <label className="block text-sm text-[#8e95a5] mb-1">Kategoriye Göre</label>
+            <select name="categoryId" defaultValue={categoryFilter} className="glass-input w-full p-2.5 rounded-xl appearance-none">
+              <option value="all">Tüm Kategoriler</option>
+              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
           <div className="flex gap-2 w-full sm:w-auto">
-            <button type="submit" className="px-6 py-2.5 rounded-xl font-bold bg-[#ffffff14] hover:bg-[#ffffff20] transition-colors">Tarihte Ara</button>
-            <a href="/giderler?month=all" className="px-6 py-2.5 rounded-xl font-bold text-[#8e95a5] hover:text-white border border-[#ffffff14] transition-colors text-center w-full sm:w-auto">Tüm Zamanlar</a>
+            <button type="submit" className="px-6 py-2.5 rounded-xl font-bold bg-[#ffffff14] hover:bg-[#ffffff20] transition-colors">Filtrele</button>
+            <a href="/giderler?month=all&categoryId=all" className="px-6 py-2.5 rounded-xl font-bold text-[#8e95a5] hover:text-white border border-[#ffffff14] transition-colors text-center w-full sm:w-auto">Sıfırla</a>
           </div>
         </form>
       </div>
