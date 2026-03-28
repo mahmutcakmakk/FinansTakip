@@ -1,7 +1,7 @@
 import db from '@/lib/db';
 import { format } from 'date-fns';
+import { Handshake, Plus, Trash2, CheckCircle } from 'lucide-react';
 import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth';
 
 async function addDebt(formData: FormData) {
