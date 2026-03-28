@@ -8,6 +8,36 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false }
 });
 
+const camelCaseMap: Record<string, string> = {
+  profileid: 'profileId',
+  categoryid: 'categoryId',
+  walletid: 'walletId',
+  personname: 'personName',
+  paidamount: 'paidAmount',
+  duedate: 'dueDate',
+  amountlimit: 'amountLimit',
+  iscompleted: 'isCompleted',
+  dayofmonth: 'dayOfMonth',
+  lastpaidmonth: 'lastPaidMonth',
+  createdat: 'createdAt',
+  updatedat: 'updatedAt',
+  categoryname: 'categoryName',
+  geminiapikey: 'geminiApiKey'
+};
+
+function mapKeysToCamelCase(row: any) {
+  if (!row) return row;
+  const newRow: any = {};
+  for (const key in row) {
+    if (camelCaseMap[key]) {
+      newRow[camelCaseMap[key]] = row[key];
+    } else {
+      newRow[key] = row[key];
+    }
+  }
+  return newRow;
+}
+
 // SQLite to PostgreSQL Query Converter
 function convertSqliteToPostgres(sql: string) {
   let index = 1;
@@ -54,7 +84,7 @@ export const db = {
       all: async (...args: any[]) => {
         try {
            const res = await pool.query(pgSql, args);
-           return res.rows;
+           return res.rows.map(mapKeysToCamelCase);
         } catch(e) {
            console.error("DB ALL ERROR:", e, "SQL:", pgSql, "ARGS:", args);
            return [];
@@ -63,7 +93,7 @@ export const db = {
       get: async (...args: any[]) => {
         try {
            const res = await pool.query(pgSql, args);
-           return res.rows[0] || null;
+           return mapKeysToCamelCase(res.rows[0] || null);
         } catch(e) {
            console.error("DB GET ERROR:", e, "SQL:", pgSql, "ARGS:", args);
            return null;
